@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - News-Flash{% endblock %}
+
+{% block styles %}
+<style>
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+    
+    .dashboard-header h2 {
+        color: #1a202c;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+    
+    .topic-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+    
+    .topic-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+    
+    .topic-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 25px rgba(0,0,0,0.15);
+    }
+    
+    .topic-card h3 {
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+    
+    .topic-card p {
+        color: #666;
+        margin-bottom: 1rem;
+    }
+    
+    .topic-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .add-topic-form {
+        display: grid;
+        grid-template-columns: 1fr 150px auto;
+        gap: 1rem;
+        align-items: end;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h2>Welcome, {{ current_user.username }}</h2>
+</div>
+
+<div class="card">
+    <h3 style="margin-bottom: 1rem; color: #2d3748; font-weight: 600;">Add New Topic</h3>
+    <form method="POST" action="{{ url_for('add_topic') }}" class="add-topic-form">
+        <div class="form-group" style="margin-bottom: 0;">
+            <label for="topic">Topic</label>
+            <select id="topic" name="topic" required>
+                <option value="" disabled selected>Select a topic</option>
+                {% for t in topic_choices %}
+                <option value="{{ t }}">{{ t }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 0;">
+            <label for="max_articles">Max Articles</label>
+            <input type="number" id="max_articles" name="max_articles" value="10" min="1" max="50">
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Add Topic</button>
+    </form>
+</div>
+
+<h3 style="color: #1a202c; margin-top: 2rem; margin-bottom: 1rem; font-weight: 600;">Your News Topics</h3>
+
+{% if preferences %}
+<div class="topic-grid">
+    {% for pref in preferences %}
+    <div class="topic-card">
+        <h3>{{ pref.topic }}</h3>
+        <p>Up to {{ pref.max_articles }} articles</p>
+        <p style="font-size: 0.85rem; color: #999;">Added {{ pref.created_at.strftime('%b %d, %Y') }}</p>
+        
+        <div class="topic-actions">
+            <a href="{{ url_for('view_news', topic_id=pref.id) }}" class="btn btn-primary">View News</a>
+            <a href="{{ url_for('delete_topic', topic_id=pref.id) }}" 
+               class="btn btn-danger"
+               onclick="return confirm('Remove this topic?')">Delete</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <p style="text-align: center; color: #666;">
+        No topics yet. Add your first topic above to get started!
+    </p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}{{ topic }} - News-Flash{% endblock %}
+
+{% block styles %}
+<style>
+    .news-header {
+        color: #1a202c;
+        margin-bottom: 2rem;
+    }
+    
+    .news-header h2 {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+        font-weight: 700;
+    }
+    
+    .summary-card {
+        background: #3182ce;
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px rgba(49, 130, 206, 0.2);
+    }
+    
+    .summary-card h3 {
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+    }
+    
+    .summary-card .summary-text {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        white-space: pre-line;
+    }
+    
+    .articles-list {
+        display: grid;
+        gap: 1rem;
+    }
+    
+    .article-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+    
+    .article-card:hover {
+        transform: translateX(5px);
+        box-shadow: 0 6px 25px rgba(0,0,0,0.15);
+    }
+    
+    .article-card h4 {
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+    
+    .article-card p {
+        color: #666;
+        margin-bottom: 1rem;
+        line-height: 1.6;
+    }
+    
+    .article-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+        color: #999;
+    }
+    
+    .article-link {
+        color: #3182ce;
+        text-decoration: none;
+        font-weight: 600;
+    }
+    
+    .article-link:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="news-header">
+    <a href="{{ url_for('dashboard') }}" style="color: #3182ce; text-decoration: none; font-weight: 500;">← Back to Dashboard</a>
+    <h2>{{ topic }}</h2>
+</div>
+
+<div class="summary-card">
+    <h3>AI Summary</h3>
+    <div class="summary-text">{{ summary }}</div>
+</div>
+
+<div class="card">
+    <h3 style="margin-bottom: 1.5rem; color: #2d3748; font-weight: 600;">Full Articles ({{ articles|length }})</h3>
+    
+    <div class="articles-list">
+        {% for article in articles %}
+        <div class="article-card">
+            <h4>{{ article.title }}</h4>
+            <p>{{ article.description or 'No description available.' }}</p>
+            
+            <div class="article-meta">
+                <span>{{ article.source }}</span>
+                <a href="{{ article.url }}" target="_blank" class="article-link">Read Full Article →</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
