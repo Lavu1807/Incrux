@@ -6,6 +6,9 @@ Run this script every hour via Task Scheduler/Cron.
 
 import sys
 import os
+
+# Set working directory to the webapp directory to ensure DB is found
+os.chdir(os.path.dirname(__file__))
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from datetime import datetime
@@ -18,6 +21,9 @@ def send_user_emails():
     """Send emails to users whose preferred time matches current hour."""
     
     with app.app_context():
+        # Ensure tables exist
+        db.create_all()
+        
         current_time = datetime.now().strftime('%H:%M')
         current_hour = datetime.now().strftime('%H')
         

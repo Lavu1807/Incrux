@@ -106,35 +106,64 @@ def _summarize_openai(system_prompt: str, user_prompt: str, articles: List[Dict[
 
 
 def _summarize_gemini(system_prompt: str, user_prompt: str, articles: List[Dict[str, str]]) -> str:
-    """Call Gemini API and fall back on errors."""
+    """Call Gemini API with model fallbacks and return local summary on errors."""
     if not Config.GEMINI_API_KEY:
         print("✗ Gemini API key missing. Falling back to local summary.")
         return _fallback_summary(articles)
 
     try:
-        print("🧠 Generating AI summary (Gemini)...")
         import google.generativeai as genai
-
         genai.configure(api_key=Config.GEMINI_API_KEY)
-        model = genai.GenerativeModel(Config.GEMINI_MODEL)
-        response = model.generate_content(f"{system_prompt}\n\n{user_prompt}")
 
-        summary = (response.text or "").strip()
-        if not summary:
-            print("✗ Empty response from Gemini. Falling back to local summary.")
-            return _fallback_summary(articles)
+        # Try configured model first, then sensible fallbacks
+        candidate_models = []
+        configured = (Config.GEMINI_MODEL or "").strip()
+        if configured:
+            candidate_models.append(configured)
+        # Common alternates across library versions
+        for m in [
+            "gemini-1.5-flash-latest",
+            "gemini-1.5-flash",
+            "gemini-1.0-pro",
+            "gemini-pro"
+        ]:
+            if m not in candidate_models:
+                candidate_models.append(m)
 
-        print("✓ Summary generated successfully")
-        return summary
+        last_err = None
+        for model_name in candidate_models:
+            try:
+                print(f"🧠 Generating AI summary (Gemini: {model_name})...")
+                model = genai.GenerativeModel(model_name)
+                response = model.generate_content(f"{system_prompt}\n\n{user_prompt}")
+                summary = (getattr(response, "text", "") or "").strip()
+                if summary:
+                    print("✓ Summary generated successfully")
+                    return summary
+                else:
+                    print("✗ Empty response from Gemini, trying next model...")
+            except Exception as e:
+                last_err = e
+                msg = str(e)
+                if "404" in msg or "not found" in msg.lower() or "unsupported" in msg.lower():
+                    print(f"  → Model '{model_name}' unavailable, trying alternate...")
+                    continue
+                if "permission" in msg.lower() or "invalid" in msg.lower():
+                    print("  → Check GEMINI_API_KEY and GEMINI_MODEL in .env")
+                    break
+                if "quota" in msg.lower() or "rate" in msg.lower():
+                    print("  → Rate limit/quota exceeded. Using local fallback summary.")
+                    break
+                print(f"  → Unexpected error with '{model_name}', trying alternate...")
+                continue
 
+        if last_err:
+            print(f"✗ Error generating summary (Gemini): {last_err}")
+        print("  → Falling back to local summary.")
+        return _fallback_summary(articles)
     except Exception as e:
-        print(f"✗ Error generating summary (Gemini): {str(e)}")
-        if "permission" in str(e).lower() or "invalid" in str(e).lower():
-            print("  → Check GEMINI_API_KEY and GEMINI_MODEL in .env")
-        elif "quota" in str(e).lower() or "rate" in str(e).lower():
-            print("  → Rate limit/quota exceeded. Using local fallback summary.")
-        else:
-            print("  → Falling back to local summary due to an unexpected error.")
+        print(f"✗ Error initializing Gemini: {e}")
+        print("  → Falling back to local summary.")
         return _fallback_summary(articles)
 
 

@@ -106,17 +106,46 @@ python main.py --recipient you@org.com
 
 ### 4) Run the web app
 ```bash
+# Windows (PowerShell)
+$env:PORT=5050
 python webapp/app.py
-# open http://localhost:5000
-# sign up, add topics, and view summaries
+
+# macOS/Linux
+PORT=5050 python webapp/app.py
+
+# Then open http://localhost:5050 in your browser
+# Sign up, log in, add topics, and view personalized news summaries
 ```
 
 The first run creates `newsflash.db` automatically. Each user can manage their own topics and article limits.
 
+**Note:** The app defaults to port 5000, but you can override it with the `PORT` environment variable if port 5000 is already in use.
+
 ## 📅 Scheduling
 
+### CLI Pipeline (main.py)
 - **Windows Task Scheduler:** point to `python main.py` inside the repo directory.
 - **Cron (Linux/Mac):** `0 8 * * * cd /path/to/Incrux && /usr/bin/python3 main.py`.
+
+### Scheduled Web App Emails (send_scheduled_emails.py)
+For automated email delivery to web app users at their preferred times:
+
+**Windows Task Scheduler (run as Administrator):**
+```powershell
+$python = "C:\Users\HP\Desktop\news_crux\.venv\Scripts\python.exe"
+$script = "C:\Users\HP\Desktop\news_crux\incrux\webapp\send_scheduled_emails.py"
+$action = New-ScheduledTaskAction -Execute $python -Argument $script
+$trigger = New-ScheduledTaskTrigger -Hourly
+Register-ScheduledTask -TaskName "NewsFlash-SendEmails" -Action $action -Trigger $trigger -RunLevel Highest
+```
+
+**Cron (Linux/Mac):**
+```bash
+# Run every hour
+0 * * * * cd /path/to/Incrux/webapp && /usr/bin/python3 send_scheduled_emails.py
+```
+
+Make sure to set valid Gmail credentials in `.env` for email delivery to work.
 
 ## 🔒 Security Notes
 
@@ -142,47 +171,80 @@ Subject: `🗞️ News-Flash | Indian Startups`
 
 ## 🧭 Troubleshooting
 
-- `Configuration Error`: ensure required keys exist in `.env`; AI provider key must match `AI_PROVIDER`.
-- `SMTPAuthenticationError`: verify Gmail App Password and 2FA; keep TLS port 587.
-- `No articles found`: adjust topic wording or increase `MAX_ARTICLES`.
-- `Import errors` in web app: run from project root so `webapp/app.py` can import shared modules.
-- "Implemented secure credential management with environment variables"
-- "Integrated with multiple third-party APIs (NewsAPI, OpenAI, Gmail)"
-- "Automated daily execution using Task Scheduler/Cron"
-- "Created HTML email templates for professional reporting"
+### Issue: "Configuration Error" or Missing API keys
 
----
-
-## 🐛 Troubleshooting
+**Solution:**
+- Ensure all required keys exist in `.env`
+- AI provider key must match `AI_PROVIDER` setting (OPENAI or GEMINI)
+- For NewsAPI: Get key at [newsapi.org](https://newsapi.org)
+- For OpenAI: Get key at [platform.openai.com](https://platform.openai.com)
+- For Gemini: Get key at [aistudio.google.com](https://aistudio.google.com)
 
 ### Issue: "Invalid API key" error
 
 **Solution:**
-- Verify your API keys in `.env`
-- For NewsAPI: Check at [newsapi.org/account](https://newsapi.org/account)
-- For OpenAI: Check at [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+- Verify you copied the key correctly (no extra spaces)
+- Check that the key has not been revoked in the provider's dashboard
+- For OpenAI/Gemini: Ensure you have an active payment method
 
-### Issue: Email not sending
+### Issue: Web app says "site cannot be reached" on port 5000
 
 **Solution:**
-- For Gmail: Use App Password, not your regular password
-- Enable "Less secure apps" (if 2FA not enabled)
-- Check that EMAIL_SENDER matches Gmail account
-- Verify firewall isn't blocking SMTP port 587
+- Another service may be using port 5000
+- Run the app on an alternate port:
+  ```powershell
+  $env:PORT=5050
+  python webapp/app.py
+  ```
+- Then open http://127.0.0.1:5050
+
+### Issue: Email not sending from web app
+
+**Solution:**
+- Update `.env` with real Gmail credentials (currently has placeholders):
+  ```env
+  EMAIL_SENDER=your_actual_email@gmail.com
+  EMAIL_PASSWORD=your_16_char_app_password
+  EMAIL_RECIPIENT=your_email@gmail.com
+  ```
+- Ensure `send_scheduled_emails.py` is scheduled in Task Scheduler/Cron
+- Test the script manually:
+  ```powershell
+  cd "C:\Users\HP\Desktop\news_crux\incrux\webapp"
+  python send_scheduled_emails.py
+  ```
+- Check that user has email enabled and preferred time is set in profile
+
+### Issue: Gemini model errors
+
+**Solution:**
+- The system automatically tries multiple Gemini models (latest first) and falls back to local summary if all fail
+- If you see "404 models/... not found": this is normal, the script will retry with alternate models
+- Consider using OpenAI instead by setting `AI_PROVIDER=OPENAI` in `.env`
 
 ### Issue: No articles found
 
 **Solution:**
-- NewsAPI free tier has limits. Check usage at [newsapi.org/account](https://newsapi.org/account)
+- NewsAPI free tier has 100 requests/day limit. Check usage at [newsapi.org/account](https://newsapi.org/account)
 - Try a more common topic (e.g., "Technology", "Business")
-- Increase `max_articles` parameter
+- Increase `--max-articles` parameter
+- Verify NewsAPI key is valid
 
 ### Issue: Rate limit exceeded
 
 **Solution:**
 - OpenAI: Upgrade plan or reduce request frequency
 - NewsAPI: Wait 24 hours or upgrade plan
-- Implement caching to reduce duplicate requests
+- Gemini: Public API has quotas; check [Google Cloud Console](https://console.cloud.google.com)
+
+---
+
+## 🔄 Recent Updates (Dec 2025)
+
+- **Improved Gemini fallback:** Automatically tries multiple Gemini model versions if the primary fails
+- **Configurable web app port:** Use `PORT` environment variable to avoid conflicts
+- **Fixed scheduled email script:** Now correctly finds database and initializes tables
+- **Better error handling:** Graceful fallback to local summaries when APIs are unavailable or rate-limited
 
 ---
 
