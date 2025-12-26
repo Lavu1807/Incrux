@@ -283,6 +283,6 @@ Found a bug or have suggestions? Open an issue or contact me!
 
 ---
 
-**Made with ❤️ by [Your Name]**
+**Made by Lavanya Verma**
 
 *P.S. - This project went from zero to production in one afternoon. Imagine what we can build together.* 🚀
